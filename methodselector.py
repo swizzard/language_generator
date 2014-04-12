@@ -1,7 +1,4 @@
-#!/bin/python3
-
 from random import randint
-import re
 
 
 class MethodSelectorError(Exception):
@@ -23,7 +20,7 @@ class MethodSelector:
         :param likelihoods_map: mapping from methods to likelihoods
         :type likelihoods_map: dict (see above)
         """
-        if not self._likelihoods:
+        if not hasattr(self, "_likelihoods"):
             self._likelihoods = {}
         for item in likelihoods_map.items():
             self._likelihoods[item[0]] = self.__likelihoods_map_to_list(self.__validate_likelihoods(item[0], item[1]))
@@ -38,7 +35,7 @@ class MethodSelector:
         """
         likelihoods = []
         for item in likelihoods_map_entry.items():
-            likelihoods += [item[1]] * item[0]
+            likelihoods += [item[0]] * item[1]
         return likelihoods
 
     def __validate_likelihoods(self, label, likelihoods):
@@ -55,9 +52,9 @@ class MethodSelector:
         if likelihoods_sum != 100:
             raise MethodSelectorError(
                 "Likelihoods must sum to 100 (likelihoods for {} sum to {})".format(label, likelihoods_sum))
-        for val in likelihoods.values():
-            if not hasattr(self, val):
-                raise MethodSelectorError("{} is not a valid method".format(val))
+        for key in likelihoods:
+            if not hasattr(self, key):
+                raise MethodSelectorError("{} is not a valid method".format(key))
         return likelihoods
 
     def get_likelihoods_map(self):
