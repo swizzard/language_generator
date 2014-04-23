@@ -25,7 +25,8 @@ class MethodSelector:
         for item in likelihoods_map.items():
             self._likelihoods[item[0]] = self.__likelihoods_map_to_list(self.__validate_likelihoods(item[0], item[1]))
 
-    def __likelihoods_map_to_list(self, likelihoods_map_entry):
+    @staticmethod
+    def __likelihoods_map_to_list(likelihoods_map_entry):
         """
         Translates an entry in a likelihoods mapping to a list consisting of references to each method in the mapping
         to its likelihood. For example, given a mapping {method1: 30, method2: 20, method3: 50}, the list would consist
@@ -80,7 +81,7 @@ class MethodSelector:
 
     likelihoods = property(get_likelihoods_map, set_likelihoods)
 
-    def get_random_method(self, group_label, adjustment=0):
+    def get_random_method(self, group_label):
         """
         Retrieves a random method from the methods group identified by group_label.
         :param group_label: the label of the methods group to retrieve a method from
@@ -88,4 +89,7 @@ class MethodSelector:
         :param adjustment: an optional parameter to 'nudge' the random selection
         :type adjustment: int
         """
+        adjustment = self.adjustments.get('{}_adjustment'.format(group_label), 0)
         return getattr(self, self._likelihoods[group_label][randint(0, 100) + adjustment])
+
+

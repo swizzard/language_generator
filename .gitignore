@@ -1,0 +1,11 @@
+*-venv/
+ez_setup.py
+get-pip.py
+__pycache__
+.DS_Store
+.idea
+.project
+.pydevproject
+*.zip
+*.orig
+
