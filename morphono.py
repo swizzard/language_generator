@@ -522,59 +522,59 @@ class Verbal(MethodSelector, MorphemeGeneratorMixin):
         self.inventory = {}
         self.syllables = set()
 		
-		def get_verbal(self, root, tense, indir_objs, agreement, verb_agglutinative):  #do I include root, I'm not sure what it does, I would guess the root verb
-			verbal = self.inventory.get('verbal')
-			features = [self.inventory.get(feature) for feature in [tense, indir_objs, agreement, verb_agglutinative]
-			affix_tpl = ''
-			for feature in features:
-				if feature:
-					affix_tpl += '{feature}_'
-			if affix_tpl.endswith('_'):
-				affix_tpl = affix_tpl[:-1]
-			affix = self.inventory.get(affix_tpl.format(tense=tense, indir_objs=indir_objs, agreement=agreement, verbal_agglutinativity=verbal_agglutinativity))
-			if not affix:
-				affix = '{tense}{indir_objs}{agreement}{verbal_agglutinativity}'.format(tense=self.inventory.get(tense), indir_objs=self.inventory.get(indir_objs), 
-										agreement=self.inventory.get(agreement), verbal_agglutinativity=self.inventory.get(verbal_agglutinativity))
-			return verbal.format(root=root;affix=affix)
-															
-		def tense_nonpst_pst(self):
-			self.gen_morpheme('nonpst')
-			self.gen_morpheme('pst', noop=True)
-		
-		def tense_pres_pst_fut(self):
-			self.gen_morpheme('pres')
-			self.gen_morpheme('pst')
-			self.gen_morpheme('fut', noop=True)
-			
-		def tense_none(self):
-			for tense in self.tense:
-				self.gen_morpheme(tense, noop=True)
+	def get_verbal(self, root, tense, indir_objs, agreement, verb_agglutinative):  #do I include root, I'm not sure what it does, I would guess the root verb
+		verbal = self.inventory.get('verbal')
+		features = [self.inventory.get(feature) for feature in [tense, indir_objs, agreement, verb_agglutinative]
+		affix_tpl = ''
+		for feature in features:
+			if feature:
+				affix_tpl += '{feature}_'
+		if affix_tpl.endswith('_'):
+			affix_tpl = affix_tpl[:-1]
+		affix = self.inventory.get(affix_tpl.format(tense=tense, indir_objs=indir_objs, agreement=agreement, verbal_agglutinativity=verbal_agglutinativity))
+		if not affix:
+			affix = '{tense}{indir_objs}{agreement}{verbal_agglutinativity}'.format(tense=self.inventory.get(tense), indir_objs=self.inventory.get(indir_objs), 
+									agreement=self.inventory.get(agreement), verbal_agglutinativity=self.inventory.get(verbal_agglutinativity))
+		return verbal.format(root=root;affix=affix)
+														
+	def tense_nonpst_pst(self):
+		self.gen_morpheme('nonpst')
+		self.gen_morpheme('pst', noop=True)
 	
-		def io_prepositional(self):
-			self.gen_morpheme('prepositional', noop=True)
-			
-		def io_case(self):
-			self.gen_morpheme('case', noop=True)
-			
-		def vagr_none(self):
-			for agreement in self.agreement:
-				self.gen_morpheme(agreement, noop=True)	
-				
-		def vagr_3ps_non3ps(self):
-			self.gen_morpheme('3ps')
-			self.gen_morpheme('non3ps', noop=True)
-			
-		def vagr_pers_only(self):
-			self.gen_morpheme('pers', noop=True)
-			
-		def vagr_pers_num(self):
-			self.gen_morpheme('pers')
-			self.gen_morpheme('num', noop=True)
+	def tense_pres_pst_fut(self):
+		self.gen_morpheme('pres')
+		self.gen_morpheme('pst')
+		self.gen_morpheme('fut', noop=True)
 		
-		def verb_synthetic(self):
-			self.gen_morpheme('synthetic')
-			self.gen_morpheme('agglutinative', noop=True)
+	def tense_none(self):
+		for tense in self.tense:
+			self.gen_morpheme(tense, noop=True)
+
+	def io_prepositional(self):
+		self.gen_morpheme('prepositional', noop=True)
+		
+	def io_case(self):
+		self.gen_morpheme('case', noop=True)
+		
+	def vagr_none(self):
+		for agreement in self.agreement:
+			self.gen_morpheme(agreement, noop=True)	
 			
+	def vagr_3ps_non3ps(self):
+		self.gen_morpheme('3ps')
+		self.gen_morpheme('non3ps', noop=True)
+		
+	def vagr_pers_only(self):
+		self.gen_morpheme('pers', noop=True)
+		
+	def vagr_pers_num(self):
+		self.gen_morpheme('pers')
+		self.gen_morpheme('num', noop=True)
+	
+	def verb_synthetic(self):
+		self.gen_morpheme('synthetic')
+		self.gen_morpheme('agglutinative', noop=True)
+		
 	
 class Other(MethodSelector, MorphemeGeneratorMixin):
     def __init__(self, phonological_inventory, nominal_instance, likelihoods_dict=None, adjustments_dict=None,
