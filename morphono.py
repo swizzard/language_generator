@@ -98,20 +98,65 @@ class Phonology(MethodSelector):
         return self.base_consonants + self.extra_consonants
 
     def get_inventory(self):
-        return {
-            "V": self.get_random_method("v")(),
-            "C": self.get_random_method("c")()
+        inventory = {
+            'V': self.get_random_method('v')(),
+            'C': self.get_random_method('c')()
         }
+        maxes = {
+            'max_CV': len(inventory['C']) * len(inventory['V']),
+            'max_CVC': (len(inventory['C']) ** 2) * len(inventory['V']),
+            'max_CVV': len(inventory['C']) * (len(inventory['V']) ** 2),
+            'max_CVCV': (len(inventory['C']) ** 2) * (len(inventory['V']) ** 2)
+        }
+        inventory.update(maxes)
 
 
 class MorphemeGeneratorMixin:
 
-    def gen_morpheme(self, label):
-        syll = None
-        while (not syll) or syll in self.syllables:
-            syll = '{c}{v}'.format(c=choice(self.phonological_inventory['C']),
-                                   v=choice(self.phonological_inventory['V']))
-        self.syllables.add(syll)
+    def map_syll_to_structure(self, syll):
+        if len(syll) == 2:
+            return 'CV'
+        elif len(syll) == 4:
+            return 'CVCV'
+        else:
+            if syll[-1] in self.inventory['V']:
+                return 'CVV'
+            else:
+                return 'CVC'
+
+    def get_more_complex_syllable(self, syll):
+        if not syll:
+            return 'CV'
+        structure = self.map_syll_to_structure(syll)
+        hierarchy = ['CV', 'CVC', 'CVV', 'CVCV']
+        try:
+            return hierarchy[hierarchy.index(structure) + 1]
+        except IndexError:
+            return hierarchy[0]
+
+    def gen_morpheme(self, label, syll_structure='CV', noop=False):
+        structure = syll_structure.capitalize()
+        templates = {
+            'CV': '{c1}{v1}',
+            'CVC': '{c1}{v1}{c2}',
+            'CVV': '{c1}{v1}{v2}',
+            'CVCV': '{c1}{v1}{c2}{v2}'
+        }
+        if noop:
+            syll = ''
+        else:
+            syll = None
+            template = templates[structure]
+            while (not syll) or syll in self.syllables:
+                if len(self.syllables) < self.inventory['max_{}'.format(structure)]:
+                    syll = template.format(c1=choice(self.phonological_inventory['C']),
+                                           v1=choice(self.phonological_inventory['V']),
+                                           c2=choice(self.phonological_inventory['C']),
+                                           v2=choice(self.phonological_inventory['V'])
+                                           )
+                else:
+                    template = self.get_more_complex_syllable(structure)
+            self.syllables.add(syll)
         self.inventory[label] = syll
 
 
@@ -130,6 +175,10 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
         self.adjustments.update(adjustments)
         if isinstance(adjustments_dict, dict):
             self.adjustments.update(adjustments_dict)
+        self.case = ['nom', 'acc', 'dat', 'gen']
+        self.number = ['sg', 'pl', 'dual']
+        self.gender = ['masc', 'fem', 'neut']
+        self.person = ['1st', '2nd', '3rd']
         self.base_likelihoods = {
             'case': {  # set a flag
                 'case_none': 40,
@@ -149,8 +198,10 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
                 'gen_masc_fem_neut': 10
             },
             'nominal_agglutinativity': {
-                'nom_synthetic': 50,
-                'nom_agglutinative': 50
+                'nom_synthetic_before': 25,
+                'nom_synthetic_after': 25,
+                'nom_agglutinative_before': 25,
+                'nom_agglutinative_after': 25
             },
             'pron_drop': {
                 'pron_no_drop': 45,
@@ -158,8 +209,14 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
                 'pron_drop_both': 20
             },
             'pron_agreement': {
-                'pron_pers_num': 40,
-                'pron_pers_num_gen': 40,
+                'pron_pers_num_synthetic_before': 10,
+                'pron_pers_num_synthetic_after': 10,
+                'pron_pers_num_agglutinative_before': 10,
+                'pron_pers_num_agglutinative_after': 10,
+                'pron_pers_num_gen_synthetic_before': 10,
+                'pron_pers_num_gen_synthetic_after': 10,
+                'pron_pers_num_gen_agglutinative_before': 10,
+                'pron_pers_num_gen_agglutinative_after': 10,
                 'pron_3ps_gen_only': 20  # i.e. he/she/it vs they
             }
         }
@@ -169,6 +226,222 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
         self.flags = set()
         self.inventory = {}
         self.syllables = set()
+
+    def synthesize(self):
+        if self.inventory.get('masc'):
+            syll = self.get_more_complex_syllable(self.inventory.get('masc'))
+            for number in self.number:
+                if self.inventory.get(number, '') != '':
+                    for case in self.case:
+                        if self.inventory.get(case, '') != '':
+                            self.gen_morpheme('masc_{number}_{case}'.format(number=number, case=case), syll)
+                    else:
+                        if not any([self.inventory.get(case) for case in self.case]):
+                            self.gen_morpheme('masc_{number}'.format(number=number), syll)
+        if self.inventory.get('fem'):
+            if self.inventory.get('fem') == self.inventory.get('masc'):
+                for number in self.number:
+                    if self.inventory.get(number, '') != '':
+                        for case in self.case:
+                            if self.inventory.get(case, '') != '':
+                                self.inventory['fem_{number}_{case}'.format(number=number, case=case)] = self.inventory.get(
+                                    'masc_{number}_{case}'.format(number=number, case=case))
+                        else:
+                            if not any([self.inventory.get(case) for case in self.case]):
+                                self.inventory['fem_{number}'.format(number=number)] = self.inventory.get('masc_{number}'.format(number=number))
+            else:
+                syll = self.get_more_complex_syllable(self.inventory.get('fem'))
+                for number in self.number:
+                    if self.inventory.get(number, '') != '':
+                        for case in self.case:
+                            if self.inventory.get(case, '') != '':
+                                self.gen_morpheme('fem_{number}_{case}'.format(number=number, case=case), syll)
+                        else:
+                            if not any([self.inventory.get(case) for case in self.case]):
+                                self.gen_morpheme('fem_{number}'.format(number=number), syll)
+        if self.inventory.get('neut'):
+            if self.inventory.get('neut') == self.inventory.get('masc'):
+                neut_gen = 'masc'
+            elif self.inventory.get('neut') == self.inventory.get('fem'):
+                neut_gen = 'fem'
+            else:
+                neut_gen = 'neut'
+            if neut_gen != 'neut':
+                for number in self.number:
+                    if self.inventory.get(number, '') != '':
+                        for case in self.case:
+                            if self.inventory.get(case, '') != '':
+                                self.inventory['neut_{number}_{case}'.format(
+                                    number=number, case=case)] = self.inventory.get(
+                                        '{neut_gen}_{number}_{case}'.format(neut_gen=neut_gen, number=number, case=case))
+                        else:
+                            if not any([self.inventory.get(case) for case in self.case]):
+                                self.inventory['neut_{number}'.format(number=number)] = self.inventory.get(
+                                    '{neut_gen}_{number}'.format(neut_gen=neut_gen, number=number))
+            else:
+                syll = self.get_more_complex_syllable(self.inventory.get('neut'))
+                for number in self.number:
+                    if self.inventory.get(number, '') != '':
+                        for case in self.case:
+                            if self.inventory.get(case, '') != '':
+                                self.gen_morpheme('neut_{number}_{case}'.format(number=number, case=case), syll)
+                    else:
+                        if not any([self.inventory.get(case) for case in self.case]):
+                            self.gen_morpheme('neut_{number}'.format(number=number), syll)
+
+    def synthesize_pron(self, gen=False):
+        for person in self.person:
+            syll = self.get_more_complex_syllable(self.inventory.get(number))
+            for number in self.number:
+                if self.inventory.get(number, '') != '':
+                    for case in self.case:
+                        if self.inventory.get(case, ''):
+                            if gen:
+                                tpl = '{person}_{number}_{gender}_{case}'
+                            else:
+                                tpl = '{person}_{number}_{case}'
+                            for gender in self.gender:
+                                if self.inventory.get(gender, '') != '':
+                                    self.gen_morpheme(tpl.format(person=person, number=number, case=case,
+                                                                 gender=gender), syll)
+                            else:
+                                if not any([self.inventory.get(gender) for gender in self.gender]):
+                                    self.gen_morpheme('{person}_{number}_{case}'.format(person=person,
+                                                                                        number=number,
+                                                                                        case=case), syll)
+            else:
+                if not any([self.inventory.get(number) for number in self.number]):
+                    for case in self.case:
+                        if self.inventory.get(gender, '') != '':
+                            if gen:
+                                tpl = '{person}_{gender}_{case}'
+                            else:
+                                tpl = '{person}_{case}'
+                            for gender in self.gender:
+                                if self.inventory.get(gender, '') != '':
+                                    self.gen_morpheme(tpl.format(person=person, gender=gender, case=case), syll)
+                    else:
+                        if gen:
+                            for gender in self.gender:
+                                if self.inventory.get(gender, '') != '':
+                                    self.gen_morpheme('{person}_{gender}'.format(person=person, gender=gender), syll)
+
+    def person(self):
+        for person in self.person:
+            self.gen_morpheme(person)
+
+    def case_none(self):
+        for case in self.case:
+            self.gen_morpheme(case, noop=True)
+
+    def case_nom_acc(self):
+        for case in self.case[2:]:
+            self.gen_morpheme(case, noop=True)
+        self.gen_morpheme('nom')
+        self.gen_morpheme('acc')
+
+    def case_nom_acc_dat(self):
+        self.gen_morpheme('nom')
+        self.gen_morpheme('acc')
+        self.gen_morpheme('dat')
+        self.gen_morpheme('gen', noop=True)
+
+    def case_nom_acc_dat_gen(self):
+        for case in self.case:
+            self.gen_morpheme(case)
+
+    def num_none(self):
+        for num in self.number:
+            self.gen_morpheme(num, noop=True)
+
+    def num_sg_pl(self):
+        self.gen_morpheme('sg')
+        self.gen_morpheme('pl')
+        self.gen_morpheme('dual', noop=True)
+
+    def gen_none(self):
+        for gender in self.gender:
+            self.gen_morpheme(gender, noop=True)
+
+    def gen_pers_nonpers(self):
+        self.gen_morpheme('masc')
+        self.inventory['fem'] = self.inventory['masc']
+        self.gen_morpheme('neut')
+
+    def gen_masc_fem(self):
+        self.gen_morpheme('masc')
+        self.gen_morpheme('fem')
+        self.inventory['neut'] = choice([self.inventory['masc'], self.inventory['fem']])
+
+    def gen_masc_fem_neut(self):
+        for gender in self.gender:
+            self.gen_morpheme(gender)
+
+    def nom_synthetic_before(self):
+        self.inventory['nominal'] = '{affix}{root}'
+        self.synthesize()
+
+    def nom_synthetic_after(self):
+        self.inventory['nominal'] = '{root}{affix}'
+        self.synthesize()
+
+    def nom_agglutinative_before(self):
+        if not self.inventory.get('nominal'):
+            self.inventory['nominal'] = '{affix}{root}'
+
+    def nom_agglutinative_after(self):
+        if not self.inventory.get('nominal'):
+            self.inventory['nominal'] = '{root}{affix}'
+
+    def pron_no_drop(self):
+        self.inventory['subj_pronoun'] = self.inventory['pron']
+        self.inventory['obj_pronoun'] = self.inventory['pron']
+
+    def pron_drop_subj(self):
+        self.inventory['subj_pronoun'] = '({pron})'.format(self.inventory['pron'])
+        self.inventory['obj_pronoun'] = self.inventory['pron']
+
+    def pron_drop_both(self):
+        self.inventory['subj_pronoun'] = '({pron})'.format(self.inventory['pron'])
+        self.inventory['obj_pronoun'] = '({pron})'.format(self.inventory['pron'])
+
+    def pron_pers_num_synthetic_before(self):
+        self.inventory['pron'] = '{affix}{root}'
+        self.synthesize_pron()
+
+    def pron_pers_num_synthetic_after(self):
+        self.inventory['pron'] = '{root}{affix}'
+        self.synthesize_pron()
+
+    def pron_pers_num_agglutinative_before(self):
+        self.inventory['pron'] = '{case}{number}{person}'
+
+    def pron_pers_num_agglutinative_after(self):
+        self.inventory['pron'] = '{person}{number}{case}'
+
+    def pron_pers_num_gen_synthetic_before(self):
+        self.inventory['pron'] = '{affix}{root}'
+        self.synthesize_pron(gen=True)
+
+    def pron_pers_num_gen_synthetic_after(self):
+        self.inventory['pron'] = '{root}{affix}'
+        self.synthesize_pron(gen=True)
+
+    def pron_pers_num_gen_agglutinative_before(self):
+        self.inventory['pron'] = '{case}{number}{gender}{person}{root}'
+
+    def pron_pers_num_gen_agglutinative_after(self):
+        self.inventory['pron'] = '{root}{person}{gender}{number}{case}'
+
+    def pron_3ps_gen_only(self):
+        self.gen_morpheme('pron_3ppl_root')
+        if not self.inventory.get('nominal'):
+            self.get_random_method('nominal_agglutinativity')()
+        self.inventory['pron_3ppl'] = self.inventory['nominal'].format(root=self.inventory['pron_3ppl_root'])
+        new_pron_method = self.get_random_method('pron_agreement')
+        while new_pron_method == self.pron_3ps_gen_only:
+            new_pron_method = self.get_random_method('pron_agreement')
+        new_pron_method()
 
 
 class Verbal(MethodSelector, MorphemeGeneratorMixin):
