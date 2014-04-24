@@ -291,7 +291,7 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
 
     def synthesize_pron(self, gen=False):
         for person in self.person:
-            syll = self.get_more_complex_syllable(self.inventory.get(number))
+            syll = self.get_more_complex_syllable(self.inventory.get(person))
             for number in self.number:
                 if self.inventory.get(number, '') != '':
                     for case in self.case:
@@ -312,7 +312,7 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
             else:
                 if not any([self.inventory.get(number) for number in self.number]):
                     for case in self.case:
-                        if self.inventory.get(gender, '') != '':
+                        if self.inventory.get(case, '') != '':
                             if gen:
                                 tpl = '{person}_{gender}_{case}'
                             else:
@@ -325,6 +325,38 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
                             for gender in self.gender:
                                 if self.inventory.get(gender, '') != '':
                                     self.gen_morpheme('{person}_{gender}'.format(person=person, gender=gender), syll)
+
+    def get_nominal(self, root, gender, number, case):
+        nominal = self.inventory.get('nominal')
+        features = [self.inventory.get(feature) for feature in [gender, number, case]]
+        affix_tpl = ''
+        for feature in features:
+            if feature:
+                affix_tpl += '{feature}_'
+        if affix_tpl.endswith('_'):
+            affix_tpl = affix_tpl[:-1]
+        affix = self.inventory.get(affix_tpl.format(gender=gender, number=number, case=case))
+        if not affix:
+            affix = '{gender}{number}{case}'.format(gender=self.inventory.get(gender), number=self.inventory.get(number),
+                                                    case=self.inventory.get(case))
+        return nominal.format(root=root, affix=affix)
+
+    def get_pronoun(self, root, person, gender, number, case):
+        pron = self.inventory.get('pron')
+        features = [self.inventory.get(feature) for feature in [person, gender, number, case]]
+        affix_tpl = ''
+        for feature in features:
+            if feature:
+                affix_tpl += '{feature}_'
+        if affix_tpl.endswith('_'):
+            affix_tpl = affix_tpl[:-1]
+        affix = self.inventory.get(affix_tpl.format(person=person, gender=gender, number=number, case=case))
+        if not affix:
+            affix = '{person}{gender}{number}{case}'.format(person=self.inventory.get(person),
+                                                            gender=self.inventory.get(gender),
+                                                            number=self.inventory.get(number),
+                                                            case=self.inventory.get(case))
+        return pron.format(root=root, affix=affix)
 
     def person(self):
         for person in self.person:
@@ -464,7 +496,7 @@ class Verbal(MethodSelector, MorphemeGeneratorMixin):
                 'tense_pres_pst_fut': 30,
                 'tense_none': 20
             },
-            'indir_objs': {  # check for 'no_case' in self.nominal_instance.flags
+            'indir_objs': {  # check if any([self.nominal_instance.inventory.get(case) for case in self.nominal_instance.case])
                 'io_prepositional': 50,
                 'io_case': 50
             },
