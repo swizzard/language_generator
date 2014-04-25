@@ -10,24 +10,25 @@ class Phonology(MethodSelector):
         self.base_consonants = ['p', 't', 'k']
         self.extra_consonants = ['b', 'd', 'f', 'g', 'j', 'l', 'm', 'n', 'r', 's', 'z']
         self.base_likelihoods = {
-            "v": {"v2": 25,
-                  "v3": 25,
-                  "v4": 25,
-                  "v5": 25
-                  },
-            "c": {
-                "c3": 10,
-                "c4": 9,
-                "c5": 9,
-                "c6": 9,
-                "c7": 9,
-                "c8": 9,
-                "c9": 9,
-                "c10": 9,
-                "c11": 9,
-                "c12": 9,
-                "c13": 9
-            }
+            "v": {
+                "v2": 25,
+                "v3": 25,
+                "v4": 25,
+                "v5": 25
+            },
+             "c": {
+                 "c3": 10,
+                 "c4": 9,
+                 "c5": 9,
+                 "c6": 9,
+                 "c7": 9,
+                 "c8": 9,
+                 "c9": 9,
+                 "c10": 9,
+                 "c11": 9,
+                 "c12": 9,
+                 "c13": 9
+             }
         }
         self.adjustments = {
             'v_adjustment': 0,
@@ -98,21 +99,14 @@ class Phonology(MethodSelector):
         return self.base_consonants + self.extra_consonants
 
     def get_inventory(self):
-        inventory = {
-            'V': self.get_random_method('v')(),
-            'C': self.get_random_method('c')()
-        }
-        maxes = {
-            'max_CV': len(inventory['C']) * len(inventory['V']),
-            'max_CVC': (len(inventory['C']) ** 2) * len(inventory['V']),
-            'max_CVV': len(inventory['C']) * (len(inventory['V']) ** 2),
-            'max_CVCV': (len(inventory['C']) ** 2) * (len(inventory['V']) ** 2)
-        }
+        inventory = {'V': self.get_random_method('v')(), 'C': self.get_random_method('c')()}
+        maxes = {'max_CV': len(inventory['C']) * len(inventory['V']), 'max_CVC': (len(inventory['C']) ** 2) * len(
+            inventory['V']),
+                 'max_CVV': len(inventory['C']) * (len(inventory['V']) ** 2), 'max_CVCV': (len(inventory['C']) ** 2) * (len(inventory['V']) ** 2)}
         inventory.update(maxes)
 
 
 class MorphemeGeneratorMixin:
-
     def map_syll_to_structure(self, syll):
         if len(syll) == 2:
             return 'CV'
@@ -136,12 +130,7 @@ class MorphemeGeneratorMixin:
 
     def gen_morpheme(self, label, syll_structure='CV', noop=False):
         structure = syll_structure.capitalize()
-        templates = {
-            'CV': '{c1}{v1}',
-            'CVC': '{c1}{v1}{c2}',
-            'CVV': '{c1}{v1}{v2}',
-            'CVCV': '{c1}{v1}{c2}{v2}'
-        }
+        templates = {'CV': '{c1}{v1}', 'CVC': '{c1}{v1}{c2}', 'CVV': '{c1}{v1}{v2}', 'CVCV': '{c1}{v1}{c2}{v2}'}
         if noop:
             syll = ''
         else:
@@ -152,8 +141,7 @@ class MorphemeGeneratorMixin:
                     syll = template.format(c1=choice(self.phonological_inventory['C']),
                                            v1=choice(self.phonological_inventory['V']),
                                            c2=choice(self.phonological_inventory['C']),
-                                           v2=choice(self.phonological_inventory['V'])
-                                           )
+                                           v2=choice(self.phonological_inventory['V']))
                 else:
                     template = self.get_more_complex_syllable(structure)
             self.syllables.add(syll)
@@ -164,14 +152,9 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
     def __init__(self, phonological_inventory, likelihoods_dict=None, adjustments_dict=None, **likelihoods,
                  **adjustments):
         self.phonological_inventory = phonological_inventory
-        self.adjustments = {
-            'case_adjustment': 0,
-            'number_adjustment': 0,
-            'gender_adjustment': 0,
-            'nominal_agglutinativity_adjustment': 0,
-            'pron_drop_adjustment': 0,
-            'pron_agreement_adjustment': 0
-        }
+        self.adjustments = {'case_adjustment': 0, 'number_adjustment': 0, 'gender_adjustment': 0,
+                            'nominal_agglutinativity_adjustment': 0, 'pron_drop_adjustment': 0,
+                            'pron_agreement_adjustment': 0}
         self.adjustments.update(adjustments)
         if isinstance(adjustments_dict, dict):
             self.adjustments.update(adjustments_dict)
@@ -183,44 +166,44 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
             'person': {
                 'person': 100
             },
-            'case': {
-                'case_none': 40,
-                'case_nom_acc': 35,
-                'case_nom_acc_dat': 20,
-                'case_nom_acc_dat_gen': 5
-            },
-            'number': {
-                'num_none': 55,
-                'num_sg_pl': 40,
-                'num_sg_pl_dual': 5
-            },
-            'gender': {
-                'gen_none': 35,
-                'gen_pers_nonpers': 30,
-                'gen_masc_fem': 25,
-                'gen_masc_fem_neut': 10
-            },
-            'nominal_agglutinativity': {
-                'nom_synthetic_before': 25,
-                'nom_synthetic_after': 25,
-                'nom_agglutinative_before': 25,
-                'nom_agglutinative_after': 25
-            },
-            'pron_drop': {
-                'pron_no_drop': 45,
-                'pron_drop_subj': 35,
-                'pron_drop_both': 20
-            },
-            'pron_agreement': {
-                'pron_pers_num_synthetic_before': 10,
-                'pron_pers_num_synthetic_after': 10,
-                'pron_pers_num_agglutinative_before': 10,
-                'pron_pers_num_agglutinative_after': 10,
-                'pron_pers_num_gen_synthetic_before': 10,
-                'pron_pers_num_gen_synthetic_after': 10,
-                'pron_pers_num_gen_agglutinative_before': 10,
-                'pron_pers_num_gen_agglutinative_after': 10,
-                'pron_3ps_gen_only': 20  # i.e. he/she/it vs they
+             'case': {
+                 'case_none': 40,
+                 'case_nom_acc': 35,
+                 'case_nom_acc_dat': 20,
+                  'case_nom_acc_dat_gen': 5
+             },
+             'number': {
+                 'num_none': 55,
+                 'num_sg_pl': 40,
+                 'num_sg_pl_dual': 5
+             },
+             'gender': {
+                 'gen_none': 35,
+                 'gen_pers_nonpers': 30,
+                 'gen_masc_fem': 25,
+                 'gen_masc_fem_neut': 10
+             },
+             'nominal_agglutinativity': {
+                 'nom_synthetic_before': 25,
+                 'nom_synthetic_after': 25,
+                  'nom_agglutinative_before': 25,
+                  'nom_agglutinative_after': 25
+             },
+             'pron_drop': {
+                 'pron_no_drop': 45,
+                 'pron_drop_subj': 35,
+                 'pron_drop_both': 20
+             },
+             'pron_agreement': {
+                 'pron_pers_num_synthetic_before': 10,
+                 'pron_pers_num_synthetic_after': 10,
+                 'pron_pers_num_agglutinative_before': 10,
+                 'pron_pers_num_agglutinative_after': 10,
+                 'pron_pers_num_gen_synthetic_before': 10,
+                 'pron_pers_num_gen_synthetic_after': 10,
+                 'pron_pers_num_gen_agglutinative_before': 10,
+                 'pron_pers_num_gen_agglutinative_after': 10,
+                  'pron_3ps_gen_only': 20 # i.e. he/she/it vs they
             }
         }
         if isinstance(likelihoods_dict, dict):
@@ -252,7 +235,8 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
                                     'masc_{number}_{case}'.format(number=number, case=case))
                         else:
                             if not any([self.inventory.get(case) for case in self.case]):
-                                self.inventory['fem_{number}'.format(number=number)] = self.inventory.get('masc_{number}'.format(number=number))
+                                self.inventory['fem_{number}'.format(number=number)] = self.inventory.get(
+                                    'masc_{number}'.format(number=number))
             else:
                 syll = self.get_more_complex_syllable(self.inventory.get('fem'))
                 for number in self.number:
@@ -275,9 +259,8 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
                     if self.inventory.get(number, '') != '':
                         for case in self.case:
                             if self.inventory.get(case, '') != '':
-                                self.inventory['neut_{number}_{case}'.format(
-                                    number=number, case=case)] = self.inventory.get(
-                                        '{neut_gen}_{number}_{case}'.format(neut_gen=neut_gen, number=number, case=case))
+                                self.inventory['neut_{number}_{case}'.format(number=number, case=case)] = self.inventory.get(
+                                    '{neut_gen}_{number}_{case}'.format(neut_gen=neut_gen, number=number, case=case))
                         else:
                             if not any([self.inventory.get(case) for case in self.case]):
                                 self.inventory['neut_{number}'.format(number=number)] = self.inventory.get(
@@ -306,13 +289,12 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
                                 tpl = '{person}_{number}_{case}'
                             for gender in self.gender:
                                 if self.inventory.get(gender, '') != '':
-                                    self.gen_morpheme(tpl.format(person=person, number=number, case=case,
-                                                                 gender=gender), syll)
+                                    self.gen_morpheme(tpl.format(person=person, number=number, case=case, gender=gender), syll)
                             else:
                                 if not any([self.inventory.get(gender) for gender in self.gender]):
-                                    self.gen_morpheme('{person}_{number}_{case}'.format(person=person,
-                                                                                        number=number,
-                                                                                        case=case), syll)
+                                    self.gen_morpheme(
+                                        '{person}_{number}_{case}'.format(person=person, number=number, case=case),
+                                        syll)
             else:
                 if not any([self.inventory.get(number) for number in self.number]):
                     for case in self.case:
@@ -341,7 +323,8 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
             affix_tpl = affix_tpl[:-1]
         affix = self.inventory.get(affix_tpl.format(gender=gender, number=number, case=case))
         if not affix:
-            affix = '{gender}{number}{case}'.format(gender=self.inventory.get(gender), number=self.inventory.get(number),
+            affix = '{gender}{number}{case}'.format(gender=self.inventory.get(gender), number=self.inventory.get(
+                number),
                                                     case=self.inventory.get(case))
         return nominal.format(root=root, affix=affix)
 
@@ -484,40 +467,37 @@ class Verbal(MethodSelector, MorphemeGeneratorMixin):
     def __init__(self, phonological_inventory, nominal_instance, likelihoods_dict=None, adjustments_dict=None,
                  **likelihoods, **adjustments):
         self.phonological_inventory = phonological_inventory
-        self.adjustments = {
-            'tense_adjustment': 0,
-            'indir_objs_adjustment': 0,
-            'agreement_adjustment': 0,
-            'verbal_agglutinativity_adjustment': 0
-        }
+        self.adjustments = {'tense_adjustment': 0, 'indir_objs_adjustment': 0, 'agreement_adjustment': 0,
+                            'verbal_agglutinativity_adjustment': 0}
         self.adjustments.update(adjustments)
         if isinstance(adjustments_dict, dict):
             self.adjustments.update(adjustments_dict)
         self.nominal_instance = nominal_instance
         self.tense = ['nonpst', 'pst', 'pres', 'fut']
-        self.indir_objs = ['prepositional', 'case']
-        self.agreement = ['3ps', 'non3ps', 'pers', 'num'] #I'm not sure of the agreement you set up
+        self.agreement = ['pers', 'num']  #I'm not sure of the agreement you set up
+        self.agreements = self.populate_pers_num()
         self.verbal_agglutinativity = ['synthetic', 'agglutinative']
         self.base_likelihoods = {
             'tense': {
                 'tense_nonpst_pst': 50,
                 'tense_pres_pst_fut': 30,
-                'tense_none': 20
-            },
-            'indir_objs': {  # check if any([self.nominal_instance.inventory.get(case) for case in self.nominal_instance.case])
-                'io_prepositional': 50,
-                'io_case': 50
-            },
-            'agreement': {
-                'vagr_none': 40,
-                'vagr_3ps_non3ps': 30,
-                'vagr_pers_only': 20,
-                'vagr_pers_num': 10
-            },
-            'verbal_agglutinativity': {
-                'verb_synthetic': 50,
-                'verb_agglutinative': 50
-            }
+                'tense_none': 20},
+                'indir_objs': {
+                    'io_prepositional_acc': 17,
+                    'io_prepositional_dat': 17,
+                    'io_prepositional_gen': 16,
+                    'io_case_acc': 17,
+                    'io_case_dat': 17,
+                    'io_case_gen': 16
+                },
+                'agreement': {
+                    'vagr_none': 40,
+                    'vagr_3ps_non3ps': 30,
+                    'vagr_pers_only': 20,
+                    'vagr_pers_num': 10},
+                'verbal_agglutinativity': {
+                    'verb_synthetic': 50,
+                    'verb_agglutinative': 50}
         }
         if isinstance(likelihoods_dict, dict):
             self.base_likelihoods.update(likelihoods_dict)
@@ -525,75 +505,126 @@ class Verbal(MethodSelector, MorphemeGeneratorMixin):
         self.flags = set()
         self.inventory = {}
         self.syllables = set()
-		
-	def get_verbal(self, root, tense, indir_objs, agreement, verb_agglutinative):  #do I include root, I'm not sure what it does, I would guess the root verb
-		verbal = self.inventory.get('verbal')
-		features = [self.inventory.get(feature) for feature in [tense, indir_objs, agreement, verb_agglutinative]
-		affix_tpl = ''
-		for feature in features:
-			if feature:
-				affix_tpl += '{feature}_'
-		if affix_tpl.endswith('_'):
-			affix_tpl = affix_tpl[:-1]
-		affix = self.inventory.get(affix_tpl.format(tense=tense, indir_objs=indir_objs, agreement=agreement, verbal_agglutinativity=verbal_agglutinativity))
-		if not affix:
-			affix = '{tense}{indir_objs}{agreement}{verbal_agglutinativity}'.format(tense=self.inventory.get(tense), indir_objs=self.inventory.get(indir_objs), 
-									agreement=self.inventory.get(agreement), verbal_agglutinativity=self.inventory.get(verbal_agglutinativity))
-		return verbal.format(root=root;affix=affix)
-														
-	def tense_nonpst_pst(self):
-		self.gen_morpheme('nonpst')
-		self.gen_morpheme('pst', noop=True)
-	
-	def tense_pres_pst_fut(self):
-		self.gen_morpheme('pres')
-		self.gen_morpheme('pst')
-		self.gen_morpheme('fut', noop=True)
-		
-	def tense_none(self):
-		for tense in self.tense:
-			self.gen_morpheme(tense, noop=True)
 
-	def io_prepositional(self):
-		self.gen_morpheme('prepositional', noop=True)
-		
-	def io_case(self):
-		self.gen_morpheme('case', noop=True)
-		
-	def vagr_none(self):
-		for agreement in self.agreement:
-			self.gen_morpheme(agreement, noop=True)	
-			
-	def vagr_3ps_non3ps(self):
-		self.gen_morpheme('3ps')
-		self.gen_morpheme('non3ps', noop=True)
-		
-	def vagr_pers_only(self):
-		self.gen_morpheme('pers', noop=True)
-		
-	def vagr_pers_num(self):
-		self.gen_morpheme('pers')
-		self.gen_morpheme('num', noop=True)
-	
-	def verb_synthetic(self):
-		self.gen_morpheme('synthetic')
-		self.gen_morpheme('agglutinative', noop=True)
-		
-	
+    def populate_pers_num(self):
+        agreements = []
+        for person in self.nominal_instance.person:
+            for number in self.nominal_instance.number:
+                if self.nominal_instance.inventory.get(number, '') != '':
+                    agreements.append('{pers}_{num}'.format(pers=person, num=number))
+        return agreements
+
+    def get_verbal(self, root, tense, indir_objs):  #do I include root, I'm not sure what it does, I would guess the root verb
+        verbal = self.inventory.get('verbal')
+        # features = [self.inventory.get(feature) for feature in [tense, indir_objs, agreement, verb_agglutinative]]
+        # affix_tpl = ''
+        # for feature in features:
+        #     if feature:
+        #         affix_tpl += '{feature}_'
+        # if affix_tpl.endswith('_'):
+        #     affix_tpl = affix_tpl[:-1]
+        # affix = self.inventory.get(affix_tpl.format(tense=tense, indir_objs=indir_objs, agreement=agreement,
+        #                                             verbal_agglutinativity=verbal_agglutinative))
+        # if not affix:
+        #     affix = '{tense}{indir_objs}{agreement}{verbal_agglutinativity}'.format(tense=self.inventory.get(tense),
+        #                                                                             indir_objs=self.inventory.get(
+        #                                                                                 indir_objs),
+        #                                                                             agreement=self.inventory.get(
+        #             agreement), verbal_agglutinativity=self.inventory.get(verbal_agglutinative))
+        # return verbal.format(root=root, affix=affix)
+
+    def tense_nonpst_pst(self):
+        self.gen_morpheme('nonpst')
+        self.gen_morpheme('pst', noop=True)
+
+    def tense_pres_pst_fut(self):
+        self.gen_morpheme('pres')
+        self.gen_morpheme('pst')
+        self.gen_morpheme('fut', noop=True)
+
+    def tense_none(self):
+        for tense in self.tense:
+            self.gen_morpheme(tense, noop=True)
+
+    def io(self, case, prep=True):
+        pp = self.inventory.get('prep_phrase')
+        if prep:
+            self.gen_morpheme('prep_io')
+            if '{prep2}' in pp:
+                self.gen_morpheme('prep_io2')
+        self.inventory['indir_obj'] = pp.format(prep1=self.inventory.get('prep_io', ''),
+                                                    prep2=self.inventory.get('prep_io2', ''),
+                                                    nominal='{case}_{nominal}'.format(case='{' + case,
+                                                                                      nominal='nominal}'))
+
+    def io_prepositional_acc(self):
+        self.io(case='acc')
+
+    def io_prepositional_dat(self):
+        self.io(case='dat')
+
+    def io_prepositional_gen(self):
+        self.io(case='gen')
+
+    def io_case_acc(self):
+        self.io(case='acc', prep=False)
+
+    def io_case_dat(self):
+        self.io(case='dat', prep=False)
+
+    def io_case_gen(self):
+        self.io(case='gen', prep=False)
+
+    def vagr_none(self):
+        for agreement in self.agreements:
+            self.gen_morpheme(agreement, noop=True)
+
+    def vagr_3ps_non3ps(self):
+        self.gen_morpheme('3rd_sg')
+        for agr in self.agreements:
+            if agr != '3rd_sg':
+                self.gen_morpheme(agr, noop=True)
+
+    def vagr_pers_only(self):
+        self.gen_morpheme('1st')
+        self.gen_morpheme('2nd')
+        self.gen_morpheme('3rd')
+        for agr in self.agreements:
+            self.inventory[agr] = self.inventory.get('{pers}'.format(pers=agr[:3]))
+
+    def vagr_pers_num(self):
+        for agr in self.agreements:
+            person = agr[:3]
+            number = agr[4:]
+            self.gen_morpheme(person)
+            self.gen_morpheme(number)
+            syll = self.get_more_complex_syllable(self.inventory.get(person))
+            self.gen_morpheme(agr, syll)
+
+    def verb_synthetic(self):
+        pass
+
+    def verb_analytic(self):
+        for agr in self.agreements:
+            person = agr[:3]
+            number = agr[4:]
+            if self.inventory.get(agr, '') != '':
+                self.inventory[agr] = '{pers}{num}'.format(pers=person, num=number)
+
+
+
 class Other(MethodSelector, MorphemeGeneratorMixin):
     def __init__(self, phonological_inventory, nominal_instance, likelihoods_dict=None, adjustments_dict=None,
                  **likelihoods, **adjustments):
         self.phonological_inventory = phonological_inventory
-        self.adjustments = {
-            'prep_position_adjustment': 0,
-            'poss_prep.adjustment': 0,
-            'neg_adjustment': 0,
-            'neg_position_adjustment': 0,
-            'art_kinds_adjustment': 0,
-            'art_positions_adjustment': 0,
-            'art_agreement_adjustment': 0,
-            'art_proper_names_adjustment': 0
-        }
+        self.adjustments = {'prep_position_adjustment': 0,
+                            'poss_prep.adjustment': 0,
+                            'neg_adjustment': 0,
+                            'neg_position_adjustment': 0,
+                            'art_kinds_adjustment': 0,
+                            'art_positions_adjustment': 0,
+                            'art_agreement_adjustment': 0,
+                            'art_proper_names_adjustment': 0}
         self.adjustments.update(adjustments)
         if isinstance(adjustments_dict, dict):
             self.adjustments.update(adjustments_dict)
@@ -624,26 +655,24 @@ class Other(MethodSelector, MorphemeGeneratorMixin):
             'neg_position': {
                 'neg_before': 60,
                 'neg_after': 40
-            },
-            'art_kinds': {  # do before other art stuff
+            }, 'art_kinds': {  # do before other art stuff
                 'art_none': 40,  # set a flag
                 'art_def_only': 22,
-                'art_indef_only_one': 11,  # i.e. indef art (root) same as word for 1
+                'art_indef_only_one': 11, # i.e. indef art (root) same as word for 1
                 'art_indef_only_not_one': 11,
                 'art_both_indef_one': 8,
                 'art_both_indef_not_one': 8
-            },
-            'art_position': {  # ignore if no arts (check flags)
+        },
+            'art_position': {
                 'art_before_affixed': 25,
                 'art_after_affixed': 25,
                 'art_before_separate': 25,
                 'art_after_separate': 25
-            },
-            'art_agreement': {  # ignore if no arts (check flags)
+            }, 'art_agreement': {
                 'art_no_agr': 40,
                 'art_agr': 60
-            },
-            'art_proper_names': {  # ignore if no arts (check flags)
+        },
+            'art_proper_names': {
                 'art_with_names': 50,
                 'art_not_with_names': 50
             }
@@ -697,13 +726,12 @@ class Other(MethodSelector, MorphemeGeneratorMixin):
                 self.gen_morpheme('prep_poss2')
             self.inventory['poss_phrase'] = prep_phrase.format(prep1=self.inventory.get('prep_poss'),
                                                                prep2=self.inventory.get('prep_poss2'),
-                                                               nominal='{case}_{nominal}'.format(
-                                                                   case='{' + case, nominal='nominal}'
-                                                               ))
+                                                               nominal='{case}_{nominal}'.format(case='{' + case,
+                                                                                                 nominal='nominal}'))
         else:
             poss_tpl = choice(['{possessor} {nominal}', '{nominal} {possessor}'])
-            self.inventory['poss_phrase'] = poss_tpl.format(possessor='{case}_{nominal}'.format(case='{' + case,
-                                                                                                nominal='nominal}'))
+            self.inventory['poss_phrase'] = poss_tpl.format(possessor='{case}_{nominal}'.format(case='{' + case, nominal='nominal}'))
+
     def poss_unless_gen_acc(self):
         self.poss_case('acc')
 
@@ -788,20 +816,3 @@ class Other(MethodSelector, MorphemeGeneratorMixin):
     @null_if_no_art
     def art_not_with_names(self):
         self.inventory['proper_name'] = self.inventory.get('nominal').replace('{art}', '')
-
-
-
-# V #this is the vowel set, between like 2 and 6
-# C #this is the consonant set, between 2 and like 15
-#
-# pronouns = ['1st', '2nd', '3rd']  #these are all pulled from the Lipzig gloss https://en.wikipedia.org/wiki/List_of_glossing_abbreviations
-# plurality = ['SG', 'PL']
-# gender = [0, 1, 3] #is there any gender? if so how many
-# tenses = ['PRES', 'IMPERF', 'FUT', 'PST'] #how many tenses exist?
-# indefinite = [1, 2, 3, 4] #how many indefinite endings are there?
-# indobj = [0, 1, 2, 3] #are there indirect objects? if so how many?
-# dirobj = [0, 1, 2, 3] #how many direct objects are required?
-# neg = [1, 2, 3, 4]#how many negative markers are required?
-# poss = [1, 2, 3]# how many possessive markers
-# q = [1, 2, 3] #how many question words are there?
-# vt = [0, 1, 2, 3] #are there transitive verbs? how many objects do they require?
