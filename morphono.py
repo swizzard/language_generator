@@ -180,7 +180,10 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
         self.gender = ['masc', 'fem', 'neut']
         self.person = ['1st', '2nd', '3rd']
         self.base_likelihoods = {
-            'case': {  # set a flag
+            'person': {
+                'person': 100
+            },
+            'case': {
                 'case_none': 40,
                 'case_nom_acc': 35,
                 'case_nom_acc_dat': 20,
@@ -226,6 +229,7 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
         self.flags = set()
         self.inventory = {}
         self.syllables = set()
+        self.order = ['person', 'case', 'number', 'nominal_agglutinativity', 'pron_agreement', 'pron_drop']
 
     def synthesize(self):
         if self.inventory.get('masc'):
@@ -546,12 +550,14 @@ class Other(MethodSelector, MorphemeGeneratorMixin):
                 'prep_circum': 8  # always affixed
             },
             'poss_prep': {  # if no case, 100% present, treat as regular prep
-                'poss_none_before_acc': 10,  # i.e. no poss prep, possessor in acc follows possessee
-                'poss_none_before_dat': 10,  # if no dat, just use acc
-                'poss_none_after_acc': 10,
-                'poss_none_after_dat': 10,
-                'poss_unless_gen_acc': 25,
-                'poss_unless_gen_dat': 25,
+                'poss_none_before_acc': 5,  # i.e. no poss prep, possessor in acc precedes possessee
+                'poss_none_before_dat': 5,  # if no dat, just use acc
+                'poss_none_before_gen': 5,
+                'poss_none_after_acc': 5,
+                'poss_none_after_dat': 5,
+                'poss_none_after_gen': 5,
+                'poss_unless_gen_acc': 20,
+                'poss_unless_gen_dat': 20,
                 'poss_even_gen': 10
             },
             'neg': {
@@ -578,9 +584,7 @@ class Other(MethodSelector, MorphemeGeneratorMixin):
             },
             'art_agreement': {  # ignore if no arts (check flags)
                 'art_no_agr': 40,
-                'art_num_only': 25,
-                'art_pers_num': 20,
-                'art_pers_num_case': 15
+                'art_agr': 60
             },
             'art_proper_names': {  # ignore if no arts (check flags)
                 'art_with_names': 50,
@@ -592,7 +596,141 @@ class Other(MethodSelector, MorphemeGeneratorMixin):
         self.set_likelihoods_map(self.base_likelihoods.update(likelihoods))
         self.inventory = {}
         self.syllables = set()
+        self.order = ['prep_position', 'poss_prep', 'neg', 'neg_position', 'art_kinds', 'art_agreement', 'art_position',
+                      'art_proper_names']
 
+    def prep_before_affixed(self):
+        self.inventory['prep_phrase'] = '{prep1}{nominal}'
+
+    def prep_after_affixed(self):
+        self.inventory['prep_phrase'] = '{nominal}{prep1}'
+
+    def prep_before_separate(self):
+        self.inventory['prep_phrase'] = '{prep1} {nominal}'
+
+    def prep_after_separate(self):
+        self.inventory['prep_phrase'] = '{nominal} {prep1}'
+
+    def prep_circum(self):
+        self.inventory['prep_phrase'] = '{prep1}{nominal}{prep2}'
+
+    def poss_none_before_acc(self):
+        self.inventory['poss_phrase'] = '{acc_nominal} {nominal}'
+
+    def poss_none_before_dat(self):
+        self.inventory['poss_phrase'] = '{dat_nominal} {nominal}'
+
+    def poss_none_before_gen(self):
+        self.inventory['poss_phrase'] = '{gen_nominal} {nominal}'
+
+    def poss_none_after_acc(self):
+        self.inventory['poss_phrase'] = '{nominal} {acc_nominal}'
+
+    def poss_none_after_dat(self):
+        self.inventory['poss_phrase'] = '{nominal} {dat_nominal}'
+
+    def poss_none_after_gen(self):
+        self.inventory['poss_phrase'] = '{nominal} {gen_nominal}'
+
+    def poss_case(self, case, even_gen=False):
+        prep_phrase = self.inventory.get('prep_phrase')
+        if not (self.inventory.get('gen')) or even_gen:
+            self.gen_morpheme('prep_poss')
+            if '{prep2}' in prep_phrase:
+                self.gen_morpheme('prep_poss2')
+            self.inventory['poss_phrase'] = prep_phrase.format(prep1=self.inventory.get('prep_poss'),
+                                                               prep2=self.inventory.get('prep_poss2'),
+                                                               nominal='{case}_{nominal}'.format(
+                                                                   case='{' + case, nominal='nominal}'
+                                                               ))
+        else:
+            poss_tpl = choice(['{possessor} {nominal}', '{nominal} {possessor}'])
+            self.inventory['poss_phrase'] = poss_tpl.format(possessor='{case}_{nominal}'.format(case='{' + case,
+                                                                                                nominal='nominal}'))
+    def poss_unless_gen_acc(self):
+        self.poss_case('acc')
+
+    def poss_unless_gen_dat(self):
+        self.poss_case('dat')
+
+    def poss_even_gen(self):
+        self.poss_case('gen', even_gen=True)
+
+    def neg_nom_and_verb_same(self):
+        self.gen_morpheme('neg_nominal')
+        self.inventory['neg_verbal'] = self.inventory.get('neg_nominal')
+
+    def neg_nom_and_verb_diff(self):
+        self.gen_morpheme('neg_nominal')
+        self.gen_morpheme('neg_verbal')
+
+    def neg_before(self):
+        self.inventory['neg_np'] = '{neg_nominal}_{nominal}'
+        self.inventory['neg_vp'] = '{neg_verbal}_{verbal}'
+
+    def art(self, def_, indef, same_as_one=False):
+        self.gen_morpheme('art_def', noop=(not def_))
+        self.gen_morpheme('art_indef', noop=(not indef))
+        if same_as_one:
+            self.inventory['one'] = self.inventory.get('art_indef')
+        else:
+            self.gen_morpheme('one')
+
+    def art_none(self):
+        self.art(def_=False, indef=False)
+
+    def art_def_only(self):
+        self.art(def_=True, indef=False)
+
+    def art_indef_only_one(self):
+        self.art(def_=False, indef=True, same_as_one=True)
+
+    def art_indef_only_not_one(self):
+        self.art(def_=False, indef=True)
+
+    def null_if_no_art(self, func):
+        if not any([self.inventory.get('art_indef'), self.inventory.get('art_def')]):
+            pass
+        else:
+            func()
+
+    @null_if_no_art
+    def art_before_affixed(self):
+        nominal = self.inventory.get('nominal')
+        self.inventory['nominal'] = '{art}' + nominal
+
+    @null_if_no_art
+    def art_after_affixed(self):
+        nominal = self.inventory.get('nominal')
+        self.inventory['nominal'] = nominal + '{art}'
+
+    @null_if_no_art
+    def art_before_separate(self):
+        nominal = self.inventory.get('nominal')
+        self.inventory['nominal'] = '{art} ' + nominal
+
+    @null_if_no_art
+    def art_before_separate(self):
+        nominal = self.inventory.get('nominal')
+        self.inventory['nominal'] = nominal + ' {art}'
+
+    @null_if_no_art
+    def art_no_agr(self):
+        pass
+
+    @null_if_no_art
+    def art_agr(self):
+        nominal = self.inventory.get('nominal')
+        self.inventory['art'] = nominal.format(root='{art}', affix='{affix}')
+
+
+    @null_if_no_art
+    def art_with_names(self):
+        self.inventory['proper_name'] = self.inventory.get('nominal')
+
+    @null_if_no_art
+    def art_not_with_names(self):
+        self.inventory['proper_name'] = self.inventory.get('nominal').replace('{art}', '')
 
 
 
