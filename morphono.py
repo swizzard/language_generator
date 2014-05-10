@@ -4,7 +4,7 @@ from random import choice, randint
 
 
 class Phonology(MethodSelector):
-    def __init__(self, likelihoods_dict=None, adjustments_dict=None, **likelihoods, **adjustments):
+    def __init__(self, likelihoods_dict=None, adjustments_dict=None):
         self.base_vowels = ['a', 'i', 'u']
         self.extra_vowels = ['e', 'o']
         self.base_consonants = ['p', 't', 'k']
@@ -28,6 +28,9 @@ class Phonology(MethodSelector):
                  "c11": 9,
                  "c12": 9,
                  "c13": 9
+             },
+             'get_inventory': {
+                 'get_inventory': 100
              }
         }
         self.adjustments = {
@@ -36,10 +39,10 @@ class Phonology(MethodSelector):
         }
         if isinstance(likelihoods_dict, dict):
             self.base_likelihoods.update(likelihoods_dict)
-        self.set_likelihoods_map(self.base_likelihoods.update(likelihoods))
+        self.set_likelihoods_map(self.base_likelihoods)
         if isinstance(adjustments_dict, dict):
             self.adjustments.update(adjustments_dict)
-        self.adjustments.update(adjustments)
+        self.inventory = self.get_inventory()
 
     def v2(self):
         i = randint(0, 2)
@@ -104,6 +107,7 @@ class Phonology(MethodSelector):
             inventory['V']),
                  'max_CVV': len(inventory['C']) * (len(inventory['V']) ** 2), 'max_CVCV': (len(inventory['C']) ** 2) * (len(inventory['V']) ** 2)}
         inventory.update(maxes)
+        return inventory
 
 
 class MorphemeGeneratorMixin:
@@ -149,13 +153,15 @@ class MorphemeGeneratorMixin:
 
 
 class Nominal(MethodSelector, MorphemeGeneratorMixin):
-    def __init__(self, phonological_inventory, likelihoods_dict=None, adjustments_dict=None, **likelihoods,
-                 **adjustments):
+    def __init__(self, phonological_inventory, likelihoods_dict=None, adjustments_dict=None):
         self.phonological_inventory = phonological_inventory
-        self.adjustments = {'case_adjustment': 0, 'number_adjustment': 0, 'gender_adjustment': 0,
-                            'nominal_agglutinativity_adjustment': 0, 'pron_drop_adjustment': 0,
-                            'pron_agreement_adjustment': 0}
-        self.adjustments.update(adjustments)
+        self.adjustments = {
+            'case_adjustment': 0,
+            'number_adjustment': 0,
+            'gender_adjustment': 0,
+            'nominal_agglutinativity_adjustment': 0,
+            'pron_drop_adjustment': 0,
+            'pron_agreement_adjustment': 0}
         if isinstance(adjustments_dict, dict):
             self.adjustments.update(adjustments_dict)
         self.case = ['nom', 'acc', 'dat', 'gen']
@@ -208,11 +214,12 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
         }
         if isinstance(likelihoods_dict, dict):
             self.base_likelihoods.update(likelihoods_dict)
-        self.set_likelihoods_map(self.base_likelihoods.update(likelihoods))
-        self.flags = set()
+        self.set_likelihoods_map(self.base_likelihoods)
         self.inventory = {}
         self.syllables = set()
         self.order = ['person', 'case', 'number', 'nominal_agglutinativity', 'pron_agreement', 'pron_drop']
+        for op in self.order:
+            self.get_random_method(op)()
 
     def synthesize(self):
         if self.inventory.get('masc'):
@@ -323,8 +330,8 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
             affix_tpl = affix_tpl[:-1]
         affix = self.inventory.get(affix_tpl.format(gender=gender, number=number, case=case))
         if not affix:
-            affix = '{gender}{number}{case}'.format(gender=self.inventory.get(gender), number=self.inventory.get(
-                number),
+            affix = '{gender}{number}{case}'.format(gender=self.inventory.get(gender),
+                                                    number=self.inventory.get(number),
                                                     case=self.inventory.get(case))
         return nominal.format(root=root, affix=affix)
 
@@ -464,12 +471,10 @@ class Nominal(MethodSelector, MorphemeGeneratorMixin):
 
 
 class Verbal(MethodSelector, MorphemeGeneratorMixin):
-    def __init__(self, phonological_inventory, nominal_instance, likelihoods_dict=None, adjustments_dict=None,
-                 **likelihoods, **adjustments):
+    def __init__(self, phonological_inventory, nominal_instance, likelihoods_dict=None, adjustments_dict=None):
         self.phonological_inventory = phonological_inventory
         self.adjustments = {'tense_adjustment': 0, 'indir_objs_adjustment': 0, 'agreement_adjustment': 0,
                             'verbal_agglutinativity_adjustment': 0}
-        self.adjustments.update(adjustments)
         if isinstance(adjustments_dict, dict):
             self.adjustments.update(adjustments_dict)
         self.nominal_instance = nominal_instance
@@ -501,10 +506,12 @@ class Verbal(MethodSelector, MorphemeGeneratorMixin):
         }
         if isinstance(likelihoods_dict, dict):
             self.base_likelihoods.update(likelihoods_dict)
-        self.set_likelihoods_map(self.base_likelihoods.update(likelihoods))
-        self.flags = set()
+        self.set_likelihoods_map(self.base_likelihoods)
         self.inventory = {}
         self.syllables = set()
+        self.order = ['tense', 'agreement', 'verbal_agglutinativity']
+        for op in self.order:
+            self.get_random_method(op)()
 
     def populate_pers_num(self):
         agreements = []
@@ -514,24 +521,18 @@ class Verbal(MethodSelector, MorphemeGeneratorMixin):
                     agreements.append('{pers}_{num}'.format(pers=person, num=number))
         return agreements
 
-    def get_verbal(self, root, tense, indir_objs):  #do I include root, I'm not sure what it does, I would guess the root verb
+    def get_verbal(self, root, person, number, tense):  #do I include root, I'm not sure what it does, I would guess the root verb
         verbal = self.inventory.get('verbal')
-        # features = [self.inventory.get(feature) for feature in [tense, indir_objs, agreement, verb_agglutinative]]
-        # affix_tpl = ''
-        # for feature in features:
-        #     if feature:
-        #         affix_tpl += '{feature}_'
-        # if affix_tpl.endswith('_'):
-        #     affix_tpl = affix_tpl[:-1]
-        # affix = self.inventory.get(affix_tpl.format(tense=tense, indir_objs=indir_objs, agreement=agreement,
-        #                                             verbal_agglutinativity=verbal_agglutinative))
-        # if not affix:
-        #     affix = '{tense}{indir_objs}{agreement}{verbal_agglutinativity}'.format(tense=self.inventory.get(tense),
-        #                                                                             indir_objs=self.inventory.get(
-        #                                                                                 indir_objs),
-        #                                                                             agreement=self.inventory.get(
-        #             agreement), verbal_agglutinativity=self.inventory.get(verbal_agglutinative))
-        # return verbal.format(root=root, affix=affix)
+        features = [self.inventory.get(feature) for feature in [person, number, tense]]
+        affix_tpl = ''
+        for feature in features:
+            if feature:
+                affix_tpl += '{feature}_'
+        if affix_tpl.endswith('_'):
+            affix_tpl = affix_tpl[:-1]
+        affix = self.inventory.get(affix_tpl.format(person=person, number=number))
+        affix += '{tense}'
+        return verbal.format(root=root, affix=affix)
 
     def tense_nonpst_pst(self):
         self.gen_morpheme('nonpst')
@@ -750,8 +751,12 @@ class Other(MethodSelector, MorphemeGeneratorMixin):
         self.gen_morpheme('neg_verbal')
 
     def neg_before(self):
-        self.inventory['neg_np'] = '{neg_nominal}_{nominal}'
-        self.inventory['neg_vp'] = '{neg_verbal}_{verbal}'
+        self.inventory['neg_np'] = '{neg_nominal} {nominal}'
+        self.inventory['neg_vp'] = '{neg_verbal} {verb}'
+
+    def neg_after(self):
+        self.inventory['neg_np'] = '{nominal} {neg_nominal}'
+        self.inventory['neg_vp'] = '{verb} {neg_verbal}'
 
     def art(self, def_, indef, same_as_one=False):
         self.gen_morpheme('art_def', noop=(not def_))
