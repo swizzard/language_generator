@@ -16,10 +16,12 @@ Lang_C = sample(C, Consonants_N) #out of the number of consonants, randomly pick
 print (Lang_C)
 '''
 
+
+
 def phonolen(type):
-    N  = randint(2,len(type)) #choose the number of V or C for each language
+    N = randint(2, len(type)) #choose the number of V or C for each language
     Lang = sample(type, N)  ##out of the number of V or C, randomly pick those from the list
     return Lang
 
-print (phonolen(V))
-print (phonolen(C))
+print(phonolen(V))
+print(phonolen(C))
