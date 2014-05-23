@@ -1,5 +1,3 @@
-import redis
-
 from random import randint
 
 
@@ -12,9 +10,6 @@ class InvalidMethodSelector(MethodSelectorError):
 
 
 class MethodSelector:
-    def __init__(self, host='localhost', port=6379, db=0):
-        super().__init__()
-        self.connection = redis.StrictRedis(host, port, db)
 
     def set_likelihoods_map(self, likelihoods_map):
         """
@@ -86,7 +81,7 @@ class MethodSelector:
 
     likelihoods = property(get_likelihoods_map, set_likelihoods)
 
-    def set_random_method(self, group_label, to_db=True):
+    def get_random_method(self, group_label):
         """
         Retrieves a random method from the methods group identified by group_label.
         :param group_label: the label of the methods group to retrieve a method from
@@ -95,21 +90,6 @@ class MethodSelector:
         :type adjustment: int
         """
         adjustment = self.adjustments.get('{}_adjustment'.format(group_label), 0)
-        method = getattr(self, self._likelihoods[group_label][randint(0, 100) + adjustment])
-        if to_db:
-            cls = self.__class__.__name__
-            key = '{}:{}'.format(cls, group_label)
-            try:
-                assert self.connection.set(key, method) is True
-            except AssertionError:
-                print('Setting method for {}: {} failed'.format(cls, group_label))
-        else:
-            return method
+        return getattr(self, self._likelihoods[group_label][randint(0, 100) + adjustment])
 
-    def get_method(self, group_label):
-        cls = self.__class__.__name__
-        key = '{}:{}'.format(cls, group_label)
-        resp = self.connection.get(key)
-        if resp is None:
-            print('No {} method found for class {}')
-        return resp
+
